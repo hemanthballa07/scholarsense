@@ -12,11 +12,11 @@ The core is non-negotiable. The release polish is sacrificeable.
 
 1. Local .NET backend with hardcoded config
 2. Azure AI Search index + ingestion (the only cloud dependency that's hard to fake locally)
-3. Top-5 LLM verifier with JSON validation + timeout (no circuit breaker yet)
+3. Top-5 LLM verifier with JSON validation + per-call timeout-to-UNCLEAR
 4. React UI talking to local backend
 5. App Insights instrumentation (early; the workbook view is late)
 6. Deploy to Container Apps + Static Web Apps
-7. Managed identity, Key Vault, Polly circuit breaker
+7. Managed identity, Key Vault
 8. README, architecture diagram, demo video
 
 ## Phase 0 — .NET warm-up (before Week 1, ~2 hours)
@@ -51,6 +51,7 @@ Microsoft Learn: "Build a web API with ASP.NET Core minimal APIs." Build `/healt
 - Azure AI Search index provisioned via code (not the portal)
 - Embeddings generated via `text-embedding-3-small`, written to index
 - Basic search endpoint returning hybrid (BM25 + vector) ranked results — no profile-aware filtering yet
+- Measure prefilter selectivity: log pre/post-filter candidate counts across 10 representative profiles; update DESIGN.md §Retrieval Stage 2 with measured median + IQR if outside the 40–95% bracket (validates the Stage 2 hypothesis)
 
 **Cut rule.** Skip CareerOneStop if access requires more than 30 minutes of setup. Skip the hand-curated 50 records if synthetic-only gets you to Week 3 on time.
 
@@ -64,13 +65,13 @@ Microsoft Learn: "Build a web API with ASP.NET Core minimal APIs." Build `/healt
 - `POST /api/v1/profiles`, `GET /api/v1/profiles/{id}` working against Cosmos
 - Structured filters: GPA, country, state, degree level, major, deadline
 - `POST /api/v1/search` accepts `profileId` and applies filters as part of the AI Search query
-- Integration tests for the search endpoint using `WebApplicationFactory`
+- Integration tests using `WebApplicationFactory` covering `POST /api/v1/profiles`, `GET /api/v1/profiles/{profileId}`, and `POST /api/v1/search` (the profile-endpoint coverage is what lets the Week 4 UI ship without a profile-creation form — see Week 4)
 
 **Cut rule.** If filter logic balloons, drop major/demographic_tags from V1 filters; keep deadline + country + state + GPA.
 
 **Definition of done.** Create a profile, search with profileId, see filtered ranked results.
 
-## Week 4 — LLM verifier + UI + end-to-end demo
+## Week 4 — LLM verifier + minimal UI + end-to-end demo
 
 **Goal.** Local end-to-end demo works. This is the project's true checkpoint.
 
@@ -79,10 +80,12 @@ Microsoft Learn: "Build a web API with ASP.NET Core minimal APIs." Build `/healt
 - JSON validation + retry-on-parse-failure
 - Timeout → UNCLEAR fallback
 - Score fusion + drop INELIGIBLE-high-confidence
-- React/TS frontend: profile create form, search input, results list with verdict badges and matched/failed criteria, demo-data banner
-- Local end-to-end demo: create profile → search → see explainable ranked results
+- React/TS frontend (minimal-scope by design): single page with search input, results list with verdict badges, matched/failed criteria display, and a static demo-data banner. Hardcoded `profileId` in the client — **no profile creation form in V1 UI**. The `POST /profiles` endpoint from Week 3 stands on its `WebApplicationFactory` integration tests.
+- Local end-to-end demo: seed a profile (curl or DB script) → search via UI → see explainable ranked results
 
-**Cut rule.** If you reach Week 4's end without this working, **pause all polish**. Spend Week 5 finishing Week 4 work. Drop deployment and demo video if necessary.
+**Cut rule.**
+- *Mid-week trigger (secondary safety net):* by Wednesday EOD, if the verifier isn't returning structured verdicts against a hardcoded profile via `curl`, stop adding verifier features (no score-fusion polish, no INELIGIBLE-drop) and start the UI work. The verifier's MVP is "returns valid JSON with a verdict"; everything else moves to Week 5.
+- *End-of-week trigger:* if you reach Week 4's end without core retrieval + verification + explanations working, **pause all polish**. Spend Week 5 finishing Week 4 work. Drop deployment and demo video if necessary.
 
 **Definition of done.** Screen-record yourself doing the demo flow locally. If the recording is convincing, you're done with the core.
 
@@ -108,14 +111,13 @@ Microsoft Learn: "Build a web API with ASP.NET Core minimal APIs." Build `/healt
 
 **Deliverables.**
 - Managed identity + Key Vault (move secrets out of app settings)
-- Polly circuit breaker on the LLM verifier
 - One App Insights workbook (latency, fallback rate, verdict distribution, token usage)
 - `README.md` — what it is, how to run locally, architecture diagram, demo link, honest "what's left for V2"
 - Architecture diagram (Excalidraw or draw.io, exported PNG)
 - 3-minute demo video (Loom or QuickTime)
 - Final code-review pass
 
-**Cut rule.** Cut bottom-up: video → workbook → circuit breaker → managed identity. Keep README and architecture diagram always.
+**Cut rule.** Cut bottom-up: video → workbook → managed identity. Keep README and architecture diagram always.
 
 **Should-have if everything else is done.** Feedback endpoint + thumbs UI, embedding cache, filter-relaxation fallback, k6 load test (50–100 sequential requests for a real latency number), profile-only recommendations endpoint.
 
@@ -123,7 +125,7 @@ Microsoft Learn: "Build a web API with ASP.NET Core minimal APIs." Build `/healt
 
 1. Built ScholarSense, an eligibility-aware scholarship search system on Azure (.NET 9, React/TS, Cosmos DB, Azure AI Search, Azure OpenAI), composing hybrid vector + keyword retrieval with structured filters and parallel LLM verification to produce explainable, ranked recommendations.
 2. Instrumented end-to-end observability via OpenTelemetry + Application Insights with custom metrics for per-stage latency, fallback rate, verdict distribution, and LLM token usage, deliberately deferring labeled eval metrics until user-feedback data was available.
-3. Built timeout-bounded LLM eligibility verification with structured JSON output and Polly circuit-breaker fallback, keeping search results available with degraded explanations when Azure OpenAI was rate-limited or unavailable.
+3. Built timeout-bounded LLM eligibility verification with structured JSON output, parallel fan-out, and per-call timeout returning UNCLEAR with reason — keeping search results available with degraded explanations during slow, rate-limited, or failing Azure OpenAI calls.
 
 Add a fourth bullet only after a real load test:
 > Measured p95 search latency of X ms across N requests against ~250 indexed scholarships, with top-5 LLM verification fanning out in parallel.
@@ -133,7 +135,7 @@ Add a fourth bullet only after a real load test:
 - **Monday (5 min).** Run `/week-checkpoint` slash command in Claude Code. Sub-agent compares your Git activity against the week's deliverables and tells you what's at risk.
 - **Mid-week.** Open PRs for review by the `code-reviewer` sub-agent before merging.
 - **Friday (10 min).** Run `/interview-quiz`. Five questions on the design decisions you actually shipped that week. Builds your interview defense incrementally.
-- **End of week.** Update `PROGRESS.md` with what shipped and what slipped.
+- **End of week.** Re-verify the `PROGRESS.md` Snapshot is accurate (current state, next step, in-progress, open questions). The Log itself is appended *continuously* during the week — every plan change, scope decision, or doc edit gets a Log entry *before* the change lands, not on Friday.
 
 ## When to stop iterating on the plan
 

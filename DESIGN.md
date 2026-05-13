@@ -58,7 +58,7 @@ One combined embedding over `title + description + eligibility_text`. Semantic c
 
 **Stage 1 — Query understanding (cheap).** No LLM query rewriting. Optional regex pass extracts obvious filter intent ("Florida", "graduate") as additional filters. Eligibility lives in the profile, not the query.
 
-**Stage 2 — Hybrid search with hard prefilter (1 AI Search call).** BM25 + vector kNN + structured filter clause derived from profile. Hard filters on hard facts (deadline, country, state, GPA minimum) cut the candidate set 50–90% before any LLM cost. Returns top 20.
+**Stage 2 — Hybrid search with hard prefilter (1 AI Search call).** BM25 + vector kNN + structured filter clause derived from profile. *Hypothesis: hard filters on hard facts (deadline, country, state, GPA minimum) cut the candidate set 50–90% on our corpus before any LLM cost. Validated in Week 2 against the 250-scholarship corpus across 10 representative profiles. If measured selectivity falls outside 40–95%, retract the range and replace with the measured median + IQR.* Returns top 20.
 
 **Stage 3 — LLM verification (parallel, top 5).** Tight system prompt, strict JSON output. Per-call 3s timeout. Parallel via `Task.WhenAll` with `SemaphoreSlim(5)`. On JSON parse failure, one retry at temperature=0; second failure → UNCLEAR + log `LLMParseFailure`. Top 5, not 10 — lower cost, fewer rate-limit issues, easier debugging. `MaxVerificationCandidates` is a config value, not a constant.
 
@@ -88,7 +88,8 @@ Search response shape (abridged):
       "confidence": 0.92,
       "matchedCriteria": ["graduate student", "US resident"],
       "failedCriteria": [],
-      "unclearCriteria": []
+      "unclearCriteria": [],
+      "reason": null
     },
     "matchReason": "..."
   }],
@@ -97,13 +98,15 @@ Search response shape (abridged):
 }
 ```
 
-No auth in V1. UI displays a "Demo data only — do not enter real personal information" banner on profile creation.
+`eligibility.reason` is `null` for ELIGIBLE and INELIGIBLE verdicts; on UNCLEAR it carries one of `timeout`, `rate_limit_429`, `transport_error`, or `parse_failure` (set by the verifier per §Failure handling).
+
+No auth in V1. UI displays a "Demo data only — do not enter real personal information" banner on the search page (the only V1 page; profile-creation UI is out of V1, see EXECUTION.md Week 4).
 
 ## Failure handling
 
 **Azure OpenAI rate-limit / timeout.**
 - Embeddings: Polly retry (3 attempts, exponential backoff with jitter, 2s budget) + 5-min LRU cache. Total failure → degrade to BM25-only, tag response with `fallbacksTriggered: ["embedding_unavailable"]`.
-- Verifier: per-call 3s timeout. Failure → candidate marked UNCLEAR with reason. Polly circuit breaker opens if verifier failure rate exceeds 50% over a 60s window; skips verification for 30s and returns search-score-only results tagged UNCLEAR.
+- Verifier: per-call 3s timeout, enforced by both `HttpClient.Timeout` and a `CancellationToken` on the SDK call (the dual enforcement guards against TCP-level hangs that exceed the SDK's own timeout during regional incidents). Failure → candidate marked UNCLEAR with `reason ∈ {timeout, rate_limit_429, transport_error, parse_failure}`. Content-filter rejections and other "200 with unusable body" responses fall through the Stage 3 JSON-parse retry path and end as UNCLEAR with `reason: "parse_failure"`. No circuit breaker in V1 — see *Why no circuit breaker in V1* below.
 
 **Empty results.** Re-issue with relaxed filters (drop `eligible_majors` first, then `demographic_tags`). Tag response.
 
@@ -113,7 +116,9 @@ No auth in V1. UI displays a "Demo data only — do not enter real personal info
 
 **AI Search down.** Out of V1 scope. V2 fallback would be Cosmos direct query with structured filters.
 
-Circuit breaker only on the LLM verifier. Other dependencies have intelligent SDK retries and no meaningful fallback; adding circuit breakers there is cargo-culted complexity.
+**Why no circuit breaker in V1.** A circuit breaker on the verifier would amortize wasted LLM calls when Azure OpenAI is persistently degraded — skipping ~5 calls per request times request rate times outage duration. At V1's scale (portfolio demo, <1 RPS, single-region), the saved calls are negligible against daily token budget, and per-call 3s timeout already bounds user-visible latency on each request. The breaker's three preconditions (unreliable downstream, calling-worsens-it, meaningful fallback) all hold *in principle* — but the *economic* precondition (sustained traffic that makes amortization matter) does not at this scale. Per-call timeout-to-UNCLEAR is the V1 failure-handling path. Reconsider in V2 if sustained RPS rises or token costs become a binding constraint.
+
+Other dependencies — Cosmos, AI Search, Embeddings — already have appropriate handling: Cosmos profile cache on read, embedding-failure → BM25-only, and Polly retries on embeddings (all documented above). Circuit breakers there would be cargo-culted complexity.
 
 ## Observability
 
@@ -125,7 +130,7 @@ One App Insights workbook in V1 covering latency, error rate, fallback rate, ver
 
 ## Out of V1 (explicitly)
 
-Essay generation. User auth. Saved searches and deadline alerts. Admin UI. A/B testing. Multi-region. Recall@k / MRR / nDCG. Fine-tuned embeddings. Top-10 verification with sophisticated concurrency. AI Search outage fallback. Second App Insights workbook. Real scraping pipeline (synthetic-first).
+Essay generation. User auth. Saved searches and deadline alerts. Admin UI. A/B testing. Multi-region. Recall@k / MRR / nDCG. Fine-tuned embeddings. Top-10 verification with sophisticated concurrency. AI Search outage fallback. Second App Insights workbook. Real scraping pipeline (synthetic-first). Polly circuit breaker on the verifier (deferred — see *Failure handling* for the V1 reasoning).
 
 ## Data sourcing
 
@@ -140,5 +145,5 @@ Essay generation. User auth. Saved searches and deadline alerts. Admin UI. A/B t
 - **Top-5 verification, parallel** — bounded fan-out isolates per-candidate failure; wall-clock is bounded by the slowest call. Config value, not a constant.
 - **Hard prefilter + LLM judgment** — hard filters on hard facts (deadline, GPA, geography); LLM on the judgment calls only. Don't pay GPT tokens to reject "deadline last year."
 - **No latency claim in resume** — measured before claimed. Real numbers from real load tests or none.
-- **One circuit breaker** — three preconditions hold for the LLM verifier and only there: unreliable downstream, calling-it-worsens-it, meaningful fallback. Not cargo-culted everywhere.
+- **No circuit breaker in V1** — three preconditions for a breaker (unreliable downstream, calling-worsens-it, meaningful fallback) hold for the verifier *in principle*, but the economic precondition — sustained traffic that justifies amortization — does not at portfolio scale. Per-call 3s timeout-to-UNCLEAR is the V1 path; reconsidered for V2 if traffic or token cost warrants it. Not cargo-culted anywhere.
 - **No recall@k in V1** — no labeled eval set means honest metrics only. Feedback data builds the eval set later.

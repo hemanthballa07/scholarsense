@@ -10,7 +10,7 @@ Authoritative docs in this repo:
 - `DESIGN.md` — architecture, retrieval pipeline, data model, API surface, failure handling.
 - `EXECUTION.md` — week-by-week build plan, build order, cut rules, weekly rituals.
 - `DATA_PROVENANCE.md` — per-record source tracking.
-- `PROGRESS.md` — what shipped and what slipped, updated weekly.
+- `PROGRESS.md` — live ledger of decisions and scope changes; Snapshot (overwritten) + append-only Log, updated *before* each change lands.
 
 Always consult `DESIGN.md` before proposing architecture changes. Always consult `EXECUTION.md` before suggesting new work.
 
@@ -25,7 +25,7 @@ Always consult `DESIGN.md` before proposing architecture changes. Always consult
 - Deployment: Azure Container Apps (backend), Azure Static Web Apps (frontend)
 - Observability: Application Insights via OpenTelemetry exporter
 - V1 verifier candidates: top 5, parallel fan-out, JSON mode, 3s timeout
-- No auth in V1. Demo-data banner on the profile-creation page.
+- No auth in V1. Demo-data banner displayed in the V1 UI (search page is the only V1 page; profile-creation UI is out of V1 — hardcoded `profileId` per Week 4).
 - Essay generation is out. Permanently.
 - No labeled eval metrics (recall@k, MRR, nDCG) in V1.
 
@@ -35,7 +35,7 @@ If a suggestion would change any of the above, surface it as a tradeoff question
 
 - C# 12 / .NET 9. Minimal API style, not controllers, unless an endpoint genuinely benefits from a controller.
 - `FluentValidation` for input validation.
-- `Polly` for retries, timeouts, circuit breaker (only on LLM verifier).
+- `Polly` for retries and timeouts. No circuit breakers in V1 — see `DESIGN.md` §Failure handling for the reasoning; breaker is in *Out of V1* and reconsidered for V2 if traffic warrants it.
 - Structured logging via `ILogger`; correlation IDs via `Activity.Current`.
 - Async all the way. `Task.WhenAll` for parallel fan-out. `SemaphoreSlim` for bounded concurrency.
 - Configuration via `IOptions<T>` pattern; no magic strings for keys.

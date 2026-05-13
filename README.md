@@ -68,16 +68,7 @@ Blockers must be addressed before merge. Strong suggestions are usually right. N
 ```
 Five questions on this week's shipped work. The session notes go to `docs/interview-notes/week-N.md`. Don't skip this. The interview prep compounds.
 
-**End of week.** Update `PROGRESS.md`:
-```markdown
-## Week N
-Shipped:
-- ...
-Slipped:
-- ...
-Risks:
-- ...
-```
+**Ongoing — `PROGRESS.md` is a live ledger, not a weekly recap.** Every plan change, scope decision, or design tweak gets a log entry *before* the change lands, and the Snapshot at the top is overwritten with current state + next concrete step + in-progress work + open questions. End-of-week is a good checkpoint moment to re-check the Snapshot, but the ledger is updated continuously, not just on Fridays. See `PROGRESS.md` itself for the entry shape and conventions.
 
 ### When to deviate from the plan
 
