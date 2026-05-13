@@ -1,11 +1,11 @@
 # ScholarSense — Design
 
-Eligibility-aware scholarship search. Hybrid retrieval (vector + BM25 + structured filters) composed with LLM eligibility verification and explainable ranking. Built independently on public/synthetic data, Azure-native stack, .NET 9 backend, React/TS frontend.
+Eligibility-aware scholarship search. Hybrid retrieval (vector + BM25 + structured filters) composed with LLM eligibility verification and explainable ranking. Built independently on public/synthetic data, Azure-native stack, .NET 10 LTS backend, React/TS frontend.
 
 ## Architecture
 
 **Frontend** — React/TS on Azure Static Web Apps.
-**Backend** — .NET 9 minimal API in a container on Azure Container Apps.
+**Backend** — .NET 10 LTS minimal API in a container on Azure Container Apps.
 **Search** — Azure AI Search (Basic tier) holds the hybrid index: vector field + BM25 fields + structured filterable fields.
 **AI** — Azure OpenAI: `text-embedding-3-small` for embeddings, `gpt-4o-mini` for eligibility verification. No `gpt-4o` in V1.
 **System of record** — Cosmos DB (NoSQL API, serverless). Profiles, scholarships, search sessions, optional feedback.

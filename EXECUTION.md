@@ -28,13 +28,15 @@ Microsoft Learn: "Build a web API with ASP.NET Core minimal APIs." Build `/healt
 **Goal.** Local .NET API runs. You can `curl localhost`.
 
 **Deliverables.**
-- .NET 9 minimal API project
+- .NET 10 LTS minimal API project
 - `/api/v1/health` returns 200
 - One sample endpoint returning a hardcoded scholarship JSON
 - Domain models: `Profile`, `Scholarship`, `EligibilityVerdict`
 - `ILogger` structured logging wired
 - Repo structure: `src/`, `tests/`, `infra/`, `data/synthetic/`, `docs/`
+- Test project bootstrap: `tests/ScholarSense.Api.Tests/` xUnit project + single `WebApplicationFactory` integration test for `/api/v1/health` passing via `dotnet test` (pulled forward from Week 3 — see PROGRESS.md 2026-05-12 process decision)
 - Azure subscription confirmed; one empty resource group created
+- Process: ship Week 1 on feature branch `week-1-backend-skeleton` via PR with `code-reviewer` agent review (sets the weekly rhythm)
 
 **Cut rule.** If you can't get the API running locally by end of week, postpone Cosmos/AI Search setup to Week 3 and use in-memory storage in Week 2.
 
@@ -123,7 +125,7 @@ Microsoft Learn: "Build a web API with ASP.NET Core minimal APIs." Build `/healt
 
 ## Resume bullets (final, post-V1)
 
-1. Built ScholarSense, an eligibility-aware scholarship search system on Azure (.NET 9, React/TS, Cosmos DB, Azure AI Search, Azure OpenAI), composing hybrid vector + keyword retrieval with structured filters and parallel LLM verification to produce explainable, ranked recommendations.
+1. Built ScholarSense, an eligibility-aware scholarship search system on Azure (.NET 10 LTS, React/TS, Cosmos DB, Azure AI Search, Azure OpenAI), composing hybrid vector + keyword retrieval with structured filters and parallel LLM verification to produce explainable, ranked recommendations.
 2. Instrumented end-to-end observability via OpenTelemetry + Application Insights with custom metrics for per-stage latency, fallback rate, verdict distribution, and LLM token usage, deliberately deferring labeled eval metrics until user-feedback data was available.
 3. Built timeout-bounded LLM eligibility verification with structured JSON output, parallel fan-out, and per-call timeout returning UNCLEAR with reason — keeping search results available with degraded explanations during slow, rate-limited, or failing Azure OpenAI calls.
 

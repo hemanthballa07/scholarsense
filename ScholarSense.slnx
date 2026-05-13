@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ScholarSense.Api/ScholarSense.Api.csproj" />
+    <Project Path="src/ScholarSense.Core/ScholarSense.Core.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ScholarSense.Api.Tests/ScholarSense.Api.Tests.csproj" />
+  </Folder>
+</Solution>
