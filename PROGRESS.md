@@ -12,19 +12,56 @@ This is the live ledger for ScholarSense. Updated **before** any implementation,
 
 **Next concrete step:** Begin Week 1 implementation. Sequence per `EXECUTION.md` Week 1: (a) confirm Phase 0 (.NET warm-up, ~2 hours of Microsoft Learn minimal-API tutorial) is done — Week 1 assumes it; (b) confirm Azure subscription is active and create one empty resource group; (c) `dotnet new` the `ScholarSense.Api` minimal-API project and `ScholarSense.Core` class library; (d) create repo folder structure (`src/`, `tests/`, `infra/`, `data/synthetic/`, `docs/`); (e) wire `ILogger` structured logging; (f) implement `/api/v1/health` and `/api/v1/scholarships/sample`; (g) define domain records `Profile`, `Scholarship`, `EligibilityVerdict` in `ScholarSense.Core`. Definition of done: push to GitHub; `curl localhost:5000/api/v1/scholarships/sample` returns valid JSON.
 
-**Before Week 1 starts:** the session's doc changes are *uncommitted* — `git status` will still show modified DESIGN.md/EXECUTION.md/CLAUDE.md/README.md and untracked PROGRESS.md/.claude/. A commit is needed before any code work begins, or a fresh clone won't reflect any of the planning work done here.
+**Planning phase committed and pushed** as `c05b456` on `origin/main`. Remote in sync; a fresh clone now reflects all three critique resolutions, the live-ledger workflow, and the `.claude/` workspace.
+
+**Week 1 in flight.** `.NET 10.0.107` installed (Homebrew). Scaffolding on branch `week-1-backend-skeleton`: folders + sln + `ScholarSense.Api` web + `ScholarSense.Core` classlib + `ScholarSense.Api.Tests` xunit + cross-project references + `Microsoft.AspNetCore.Mvc.Testing` package. After scaffold lands, writing domain records + minimal API `Program.cs` + a single `WebApplicationFactory` test for `/health`; then `dotnet build`, `dotnet test`, commit on local branch (push + PR deferred to user review).
 
 **Next concrete step:** Begin Week 1 deliverables per `EXECUTION.md`. In order: (1) create repo folder structure (`src/`, `tests/`, `infra/`, `data/synthetic/`, `docs/`); (2) `dotnet new` the `ScholarSense.Api` minimal-API project and `ScholarSense.Core` class library; (3) wire `ILogger` structured logging; (4) implement `/api/v1/health` returning 200; (5) implement `/api/v1/scholarships/sample` returning a hardcoded `Scholarship` record; (6) define domain records `Profile`, `Scholarship`, `EligibilityVerdict` in `ScholarSense.Core`; (7) confirm Azure subscription + create one empty resource group. Before any of this, complete Phase 0 (.NET warm-up per EXECUTION.md line 22) if not already done. Definition of done: push to GitHub and `curl localhost:5000/api/v1/scholarships/sample` returns valid JSON.
 
-**In-progress work:** None — no code in flight, no half-edited files.
+**In-progress work:** None — Week 1 scaffold attempt aborted at `dotnet --version`; no filesystem changes made.
 
-**Open questions:** None — all three critique items resolved.
+**Open questions / user actions:**
+- *Azure subscription + empty resource group:* Week 1 deliverable; can run in parallel with the in-flight `.NET 10` install (not on the local-code critical path).
 
 ---
 
 ## Log
 
 *Append-only, newest first.*
+
+### 2026-05-12 — Week 1 resume: scaffold + code + build + test on `week-1-backend-skeleton`
+- **Type:** implementation
+- **What:** `.NET 10.0.107` installed; resuming Week 1 deliverables on fresh feature branch. Sequence: (1) checkout new branch `week-1-backend-skeleton`; (2) folder structure `src/`, `tests/`, `infra/`, `data/synthetic/`, `docs/`; (3) `dotnet new gitignore`; (4) `dotnet new sln -n ScholarSense`; (5) `dotnet new web -n ScholarSense.Api`; (6) `dotnet new classlib -n ScholarSense.Core`; (7) `dotnet new xunit -n ScholarSense.Api.Tests`; (8) add all three projects to sln; (9) `Api → Core` reference; `Api.Tests → Api` reference; (10) add `Microsoft.AspNetCore.Mvc.Testing` to `Api.Tests`; (11) delete auto-generated `Class1.cs` / default `Program.cs` / `UnitTest1.cs`; (12) write domain records `Profile`, `Scholarship`, `EligibilityVerdict` (+ `Verdict` enum) in `Core` using C# 14 collection expressions; (13) write minimal API `Program.cs` with `/api/v1/health`, `/api/v1/scholarships/sample` (clearly-synthetic fixture), `public partial class Program {}` marker for testability; (14) write single `WebApplicationFactory<Program>` test for `/health` returning 200; (15) `dotnet build`; (16) `dotnet test`; (17) commit on local branch only — push + `gh pr create` + `code-reviewer` invocation deferred to user review.
+- **Why:** Executes EXECUTION.md Week 1 deliverables per the feature-branch+PR process decision. Pushing the branch and opening a PR are "visible to others" actions per session safety conventions; deserve user review of the actual commit content before they happen. Test bootstrap pulled forward from Week 3 per earlier process decision.
+- **Files:** new — `ScholarSense.sln`, `.gitignore`, `src/ScholarSense.Api/*` (csproj + Program.cs + appsettings + launchSettings), `src/ScholarSense.Core/*` (csproj + Profile.cs + Scholarship.cs + EligibilityVerdict.cs), `tests/ScholarSense.Api.Tests/*` (csproj + HealthEndpointTests.cs). New folders: `src/`, `tests/`, `infra/`, `data/synthetic/`, `docs/`.
+- **Status:** in-progress
+- **Refs:** 2026-05-12 — Upgrade to .NET 10 LTS / Week 1 process decisions / Week 1 begin (blocked, superseded).
+
+### 2026-05-12 — Upgrade locked stack from .NET 9 to .NET 10 LTS
+- **Type:** decision + scope-change
+- **What:** Switched locked .NET version from `.NET 9` (STS, released Nov 2024, support ending ~May 2026 — i.e., this month) to `.NET 10 LTS` (released Nov 2025, supported through Nov 2028). Updated `CLAUDE.md` (Locked decisions backend line + Stack conventions C#/.NET line), `DESIGN.md` (intro project description + Architecture backend line), `EXECUTION.md` (Week 1 deliverable + Resume bullet #1). Phase 0 prose stayed (version-agnostic). `brew install dotnet` (now installing 10.0.107) is running in background.
+- **Why:** Triggered by `brew info dotnet` showing 10.0.107 is the current Homebrew formula stable. .NET 9 STS support ends this month; shipping a portfolio project on an EOL runtime is a weak signal for Microsoft new-grad interviews in late 2026 / 2027. .NET 10 LTS is the current Microsoft-recommended path with a 2.5-year support window. Zero code changes required — minimal APIs, records, ILogger, Polly, WebApplicationFactory are all forward-compatible. Cleaner install path via Homebrew formula (no PATH wrangling vs `dotnet-install.sh --channel 9.0`). Surfaced as tradeoff per CLAUDE.md rule "If a suggestion would change any of the above [locked decisions], surface it as a tradeoff question first"; user accepted the recommendation.
+- **Files:** `CLAUDE.md` (Locked decisions + Stack conventions), `DESIGN.md` (intro + Architecture), `EXECUTION.md` (Week 1 deliverable + Resume bullet #1), `PROGRESS.md` (this entry + Snapshot).
+- **Status:** done
+- **Refs:** prior log entries; CLAUDE.md `Locked decisions` rule. Install confirmed: `dotnet --version` returned `10.0.107`.
+
+### 2026-05-12 — Week 1 process decisions: feature-branch + PR; test bootstrap pulled forward
+- **Type:** decision + scope-change
+- **What:** Three Week 1 decisions confirmed: (1) Feature branch `week-1-backend-skeleton` + PR with `code-reviewer` agent review (not direct-to-main). (2) Bootstrap `tests/ScholarSense.Api.Tests/` in Week 1 with a single `WebApplicationFactory` integration test for `/api/v1/health` — small slice of test work pulled forward from Week 3 (Week 3 still owns the full profiles + search integration coverage). (3) No descope — Week 1 deliverables stand.
+- **Why:** Feature-branch+PR locks in the weekly rhythm CLAUDE.md and EXECUTION.md describe (Monday `/week-checkpoint`, mid-week `code-reviewer` PR review, Friday `/interview-quiz`). Running the rhythm once for Week 1 validates it before later weeks where stakes are higher (Week 4 verifier work, Week 5 deployment). Test bootstrap in Week 1 is cheap (single `/health` test ~10 min) and means `dotnet test` works end-to-end from Week 1; Week 3's coverage expansion is then incremental, not setup-from-scratch.
+- **Files:** `EXECUTION.md` Week 1 deliverables (add test-project bootstrap bullet); `PROGRESS.md` (this entry + Snapshot).
+- **Status:** done
+- **Refs:** prior log entry "2026-05-12 — Week 1 begin: backend skeleton scaffold" (still blocked on .NET install).
+
+### 2026-05-12 — Week 1 begin: backend skeleton scaffold
+- **Type:** implementation
+- **What:** Beginning Week 1 deliverables per EXECUTION.md Week 1. Sequence: (1) verify `dotnet --version` ≥ 9.0 (surfaces Phase 0 status); (2) create folder structure `src/`, `tests/`, `infra/`, `data/synthetic/`, `docs/`; (3) `dotnet new gitignore`; (4) `dotnet new sln -n ScholarSense`; (5) `dotnet new web -n ScholarSense.Api` in `src/ScholarSense.Api/`; (6) `dotnet new classlib -n ScholarSense.Core` in `src/ScholarSense.Core/`; (7) add both projects to the sln; (8) add `ScholarSense.Core` as a reference from `ScholarSense.Api`; (9) delete auto-generated `Class1.cs` from `Core`; (10) define records `Profile`, `Scholarship`, `EligibilityVerdict` (+ `Verdict` enum) in `Core`; (11) rewrite `Program.cs` in `Api` with minimal API: `/api/v1/health` (200), `/api/v1/scholarships/sample` (synthetic Scholarship JSON), `ILogger` wired via `builder.Logging`; (12) `dotnet build` to verify clean compile. Azure subscription + empty resource group (Week 1 deliverables 7 + 8) deferred to user — Bash can't operate on the user's Azure account.
+- **Why:** EXECUTION.md Week 1 governs. Phase 0 (.NET warm-up) is implicitly assumed per user's "push it and start Week 1" instruction — `dotnet --version` in the scaffold chain will surface any tooling gap immediately. Synthetic placeholder data in the sample endpoint per CLAUDE.md IP-safety convention (no real scholarship data masquerading; clearly-marked synthetic fixture). Record types match the API Search index field shape in DESIGN.md §Data model so Week 2 ingestion doesn't require a record-redesign.
+- **Files:** none created yet — scaffold aborted before any filesystem changes.
+- **Status:** blocked
+- **Blocker:** `.NET 9 SDK is not installed on this machine`. `dotnet --version` returned exit code 127 (command not found). The scaffold chain `&&`-short-circuited at step 1; no folders or projects were created. Phase 0 (.NET warm-up, per EXECUTION.md line 22 and README.md "Phase 0") was not actually done — `dotnet --version` was the right gate and caught it.
+- **Unblock:** user installs the .NET 9 SDK on macOS. Easiest: `brew install --cask dotnet-sdk` (Homebrew) or download the macOS installer from `https://dotnet.microsoft.com/download/dotnet/9.0` and run the `.pkg`. After install, verify with `dotnet --version` (should print something like `9.0.x`). Then say "resume Week 1" and the scaffold chain re-runs.
+- **Refs:** prior log entry "2026-05-12 — Parallel-agent audit"; EXECUTION.md Week 1 deliverables; EXECUTION.md Phase 0 (line 22).
 
 ### 2026-05-12 — Parallel-agent audit: 10 coherence findings; 8 fixes applied; `.claude/` verified clean
 - **Type:** doc-update

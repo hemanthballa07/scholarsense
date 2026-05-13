@@ -16,7 +16,7 @@ Always consult `DESIGN.md` before proposing architecture changes. Always consult
 
 ## Locked decisions (do not re-litigate)
 
-- Backend: .NET 9 minimal API in C#
+- Backend: .NET 10 LTS minimal API in C#
 - Frontend: React + TypeScript
 - Search: Azure AI Search (Basic tier), hybrid mode with RRF + semantic re-ranking
 - AI: Azure OpenAI — `text-embedding-3-small` for embeddings, `gpt-4o-mini` for verification. No `gpt-4o`.
@@ -33,7 +33,7 @@ If a suggestion would change any of the above, surface it as a tradeoff question
 
 ## Stack conventions
 
-- C# 12 / .NET 9. Minimal API style, not controllers, unless an endpoint genuinely benefits from a controller.
+- C# 14 / .NET 10 LTS. Minimal API style, not controllers, unless an endpoint genuinely benefits from a controller.
 - `FluentValidation` for input validation.
 - `Polly` for retries and timeouts. No circuit breakers in V1 — see `DESIGN.md` §Failure handling for the reasoning; breaker is in *Out of V1* and reconsidered for V2 if traffic warrants it.
 - Structured logging via `ILogger`; correlation IDs via `Activity.Current`.
