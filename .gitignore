@@ -480,3 +480,6 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# ScholarSense local developer config (not for source control)
+appsettings.*.local.json
